@@ -6,9 +6,15 @@ class Booking(models.Model):
     NoOfGuests = models.IntegerField(6)
     BookingDate = models.DateField()
 
+    def __str__(self):
+        return f"{self.Name} - {self.NoOfGuests} guests on {self.BookingDate}"
+
 
 class Menu(models.Model):
     Title = models.CharField(max_length=255)
     Price = models.DecimalField(max_digits=10, decimal_places=2)
     Inventory = models.IntegerField(5)
+
+    def __str__(self):
+        return f"{self.Title} - ${self.Price} ({self.Inventory} in stock)"
 
