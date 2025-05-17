@@ -13,6 +13,10 @@ class MenuSerializer(serializers.ModelSerializer):
         fields = ['id', 'Title', 'Price', 'Inventory']
 
 class BookingSerializer(serializers.ModelSerializer):
+    NoOfGuests = serializers.IntegerField(min_value=1, max_value=6, error_messages={
+        'min_value': 'Number of guests must be at least 1.',
+        'max_value': 'Number of guests cannot exceed 6.'
+    })
     class Meta:
         model = Booking
-        fields = '__all__'
+        fields = ['Name', 'NoOfGuests', 'BookingDate']

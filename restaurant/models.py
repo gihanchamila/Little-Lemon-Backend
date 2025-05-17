@@ -3,7 +3,7 @@ from django.db import models
 # Create your models here.
 class Booking(models.Model):
     Name = models.CharField(max_length=255)
-    NoOfGuests = models.IntegerField(6)
+    NoOfGuests = models.IntegerField(verbose_name="Number of Guests")
     BookingDate = models.DateField()
 
     def __str__(self):
