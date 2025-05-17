@@ -10,13 +10,13 @@ class UserSerializer(serializers.ModelSerializer):
 class MenuSerializer(serializers.ModelSerializer):
     class Meta:
         model = Menu
-        fields = ['id', 'Title', 'Price', 'Inventory']
+        fields = ['id', 'title', 'price', 'inventory']
 
 class BookingSerializer(serializers.ModelSerializer):
-    NoOfGuests = serializers.IntegerField(min_value=1, max_value=6, error_messages={
+    no_of_guests = serializers.IntegerField(min_value=1, max_value=6, error_messages={
         'min_value': 'Number of guests must be at least 1.',
         'max_value': 'Number of guests cannot exceed 6.'
     })
     class Meta:
         model = Booking
-        fields = ['Name', 'NoOfGuests', 'BookingDate']
+        fields = ['name', 'no_of_guests', 'booking_date']
