@@ -11,22 +11,22 @@ def index(request):
     return render(request, 'index.html', {})
 
 class UserViewSet(ModelViewSet):
+   permission_classes = [permissions.IsAuthenticated] 
    queryset = User.objects.all()
    serializer_class = UserSerializer
-   permission_classes = [permissions.IsAuthenticated] 
-
+   
 class MenuItemView(ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Menu.objects.all()
-    serializer_class = MenuSerializer
-    permission_classes = [permissions.IsAuthenticated] 
+    serializer_class = MenuSerializer    
     
 class SingleMenuItemView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Menu.objects.all()
     serializer_class = MenuSerializer
-    permission_classes = [permissions.IsAuthenticated] 
 
 class BookingViewSet(ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
-    permission_classes = [permissions.IsAuthenticated] 
     
