@@ -1,6 +1,7 @@
 from django.db import models
 
 # Create your models here.
+# Use snake_case for field names
 class Booking(models.Model):
     name = models.CharField(max_length=255)
     no_of_guests = models.IntegerField(verbose_name="Number of Guests")
