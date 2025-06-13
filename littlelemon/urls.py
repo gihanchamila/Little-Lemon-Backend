@@ -20,7 +20,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('booking.urls')),
+    path('api/', include('bookings.urls')),
 
     path('auth/', include('djoser.urls')),
     path('auth/jwt/create/', TokenObtainPairView.as_view(), name='jwt-create'),
