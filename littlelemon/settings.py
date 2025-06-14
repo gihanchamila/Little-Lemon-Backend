@@ -121,7 +121,7 @@ REST_FRAMEWORK = {
 }
 
 DJOSER = {
-    "USER_ID_FIELD": "email",
+    "USER_ID_FIELD": "id",
     "LOGIN_FIELD": "email",
 }
 
