@@ -104,7 +104,7 @@ class Booking(models.Model):
 
     def __str__(self):
         dt_format = self.booking_datetime.strftime('%Y-%m-%d @ %H:%M')
-        return f"Booking for {self.user.username} on {dt_format}"
+        return f"Booking for {self.user.email} on {dt_format}"
     
 
 class Payment(models.Model):
