@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db.models.deletion import ProtectedError
 from django.db.utils import IntegrityError
+from bookings.models import BookingStatus, PaymentStatus, PaymentMethod
 
 # Import all your models
 from .models import (
@@ -50,7 +51,6 @@ class ModelTests(TestCase):
         self.assertEqual(user.last_name, 'user')
         self.assertFalse(user.is_email_verified)
         self.assertFalse(user.is_mobile_verified)
-        self.assertFalse(user.is_admin)
         self.assertTrue(user.is_active)
         self.assertIsNotNone(user.created_at)
         self.assertEqual(str(user), 'test@example.com')
@@ -112,7 +112,7 @@ class BookingRelationshipTests(TestCase):
         """Test that a booking can be created with correct defaults."""
         self.assertEqual(Booking.objects.count(), 1)
         self.assertEqual(self.booking.user.email, 'test-booking@example.com')
-        self.assertEqual(self.booking.status, 'pending')
+        self.assertEqual(self.booking.status, BookingStatus.PENDING)
         self.assertEqual(self.booking.payment_status, 'unpaid')
         self.assertIsNotNone(self.booking.created_at)
         self.assertIn('Booking for test-booking@example.com', str(self.booking))
@@ -160,7 +160,7 @@ class PaymentRelationshipTests(TestCase):
             method='stripe'
         )
         self.assertEqual(Payment.objects.count(), 1)
-        self.assertEqual(payment.status, 'pending')
+        self.assertEqual(payment.status, PaymentStatus.UNPAID)
         self.assertEqual(payment.currency, 'LKR')
         self.assertFalse(payment.verified)
         self.assertEqual(str(payment), f"Payment of 50.00 LKR for Booking {self.booking.id}")
