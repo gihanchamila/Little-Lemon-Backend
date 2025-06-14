@@ -101,19 +101,32 @@ class PaymentMethod(models.TextChoices):
     PAYPAL = 'paypal', 'PayPal'
     LOCAL_BANK = 'local_bank', 'Local Bank Transfer'
 
+class Table(models.Model):
+    table_number = models.CharField(max_length=10, unique=True, help_text="e.g., 'V1', 'P5', '12'")
+    seating_type = models.ForeignKey('SeatingType', on_delete=models.PROTECT)
+    capacity = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"Table {self.table_number} ({self.seating_type.name} - seats {self.capacity})"
+
+    class Meta:
+        ordering = ['table_number']
+
 class Booking(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookings')
     number_of_guests = models.PositiveIntegerField()
     booking_datetime = models.DateTimeField()  # Instead of separate date/time
     occasion = models.ForeignKey('Occasion', on_delete=models.SET_NULL, null=True)
-    seating_type = models.ForeignKey('SeatingType', on_delete=models.PROTECT)
+    table = models.ForeignKey('Table', on_delete=models.PROTECT)
     special_request = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=BookingStatus.choices, default=BookingStatus.PENDING)
     staff_note = models.TextField(blank=True, null=True)
     payment_status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    base_price_per_guest = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
         dt_format = self.booking_datetime.strftime('%Y-%m-%d @ %H:%M')
@@ -145,6 +158,7 @@ class TimeSlot(models.Model):
     start_time = models.TimeField()
     end_time = models.TimeField()
     label = models.CharField(max_length=50, blank=True)
+    base_price_per_guest = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def clean(self):
         if self.end_time <= self.start_time:

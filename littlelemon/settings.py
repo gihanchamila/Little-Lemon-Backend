@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'djoser',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',   
+    'rest_framework_simplejwt.token_blacklist',
+    'django_filters',
 
     'bookings'
 ]
@@ -128,7 +129,7 @@ DJOSER = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,           # optionally rotate refresh tokens on use
     'BLACKLIST_AFTER_ROTATION': True,        # if using token blacklist

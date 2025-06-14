@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser, Occasion, SeatingType, Booking, Payment, TimeSlot
+from .models import CustomUser, Occasion, SeatingType, Booking, Payment, TimeSlot, Table
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
@@ -30,3 +30,4 @@ admin.site.register(SeatingType)
 admin.site.register(Booking)
 admin.site.register(Payment)
 admin.site.register(TimeSlot)
+admin.site.register(Table)
