@@ -123,6 +123,8 @@ REST_FRAMEWORK = {
 DJOSER = {
     "USER_ID_FIELD": "id",
     "LOGIN_FIELD": "email",
+    'SEND_ACTIVATION_EMAIL': True,
+    'ACTIVATION_URL': 'auth/activate/{uid}/{token}/'
 }
 
 SIMPLE_JWT = {
@@ -132,6 +134,14 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,        # if using token blacklist
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+EMAIL_BACKEND = config('EMAIL_BACKEND')
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_PORT = config('EMAIL_PORT', cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
 AUTH_USER_MODEL = 'bookings.CustomUser'
 
