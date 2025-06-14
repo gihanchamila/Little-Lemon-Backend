@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Occasion, SeatingType, TimeSlot, CustomUser, Booking, Payment
 from django.contrib.auth.password_validation import validate_password
+from djoser.serializers import PasswordChangeSerializer
 
 class UserCreationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
@@ -24,3 +25,7 @@ class UserCreationSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
+    
+    def update(self, instance, validated_data):
+        return super().update(instance, validated_data)
+    
