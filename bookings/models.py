@@ -105,6 +105,7 @@ class Table(models.Model):
     table_number = models.CharField(max_length=10, unique=True, help_text="e.g., 'V1', 'P5', '12'")
     seating_type = models.ForeignKey('SeatingType', on_delete=models.PROTECT)
     capacity = models.PositiveIntegerField()
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"Table {self.table_number} ({self.seating_type.name} - seats {self.capacity})"
@@ -134,8 +135,7 @@ class Booking(models.Model):
     
     class Meta:
         ordering = ['-booking_datetime']
-        verbose_name_plural = "Bookings"
-    
+        verbose_name_plural = "Bookings" 
 
 class Payment(models.Model):
     booking = models.OneToOneField('Booking', on_delete=models.CASCADE)

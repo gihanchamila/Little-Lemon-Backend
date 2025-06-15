@@ -1,9 +1,10 @@
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from .models import CustomUser, Occasion, SeatingType, Booking, Payment, TimeSlot, Table
+from .models import CustomUser, Occasion, SeatingType, Booking, Payment, TimeSlot, Table, PaymentStatus, BookingStatus
 from rest_framework import serializers
 from django.utils import timezone
 from .pricing import calculate_booking_price
 from .availability import find_available_table
+
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -37,6 +38,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         )
         return user
     
+    def validate(self, data):
+        mobile_number = data.get('mobile_number')
+
+        if not mobile_number:
+            raise serializers.ValidationError({
+                'mobile_number': 'This field is required.'
+            })
+        
+        return data
+    
 class OccasionSerializer(serializers.ModelSerializer):
     """ Simple serializer for listing Occasions. """
     class Meta:
@@ -45,13 +56,15 @@ class OccasionSerializer(serializers.ModelSerializer):
 
 class SeatingTypeSerializer(serializers.ModelSerializer):
     """ Simple serializer for listing Seating Types. """
+    capacity = serializers.IntegerField(required=True)
+    is_accessible = serializers.BooleanField(required=True)
     class Meta:
         model = SeatingType
         fields = ['id', 'name', 'capacity', 'is_accessible', 'price_multiplier', 'location_note']
 
-
 class TimeSlotSerializer(serializers.ModelSerializer):
     """ Serializer for available time slots. """
+
     class Meta:
         model = TimeSlot
         fields = ['id', 'start_time', 'end_time', 'label', 'base_price_per_guest']
@@ -71,26 +84,53 @@ class PriceCalculationSerializer(serializers.Serializer):
         fields = ['number_of_guests', 'booking_datetime', 'seating_type_id']
 
 class PaymentSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the Payment model.
-    Most fields are read-only as they are set by the backend/payment gateway.
-    """
-    user = UserSerializer(read_only=True) # Nested user details for display
-
     class Meta:
         model = Payment
         fields = '__all__'
-        read_only_fields = [
-            'user', 'amount', 'status', 'transaction_id', 
-            'paid_at', 'verified', 'created_at', 'updated_at'
-        ]
+        read_only_fields = ['user', 'verified', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        if Payment.objects.filter(booking=data['booking']).exists():
+            raise serializers.ValidationError("This booking already has a payment.")
+        return data
+    
+    def validate_booking(self, booking):
+        request = self.context['request']
+        user = request.user
+
+        # Ensure the booking belongs to the logged-in user
+        if booking.user != user:
+            raise serializers.ValidationError("You can only make payments for your own bookings.")
+
+        # Optional: Prevent double payment
+        if hasattr(booking, 'payment'):
+            raise serializers.ValidationError("Payment has already been made for this booking.")
+
+        return booking
+    
+    def create(self, validated_data):
+        user = self.context['request'].user
+        validated_data['user'] = user
+
+        # Create the payment first
+        payment = super().create(validated_data)
+
+        # Update the booking if payment status is "paid"
+        if payment.status == PaymentStatus.PAID:
+            booking = payment.booking
+            booking.status = BookingStatus.CONFIRMED
+            booking.payment_status = PaymentStatus.PAID
+            booking.save()
+
+        return payment
 
 class TableSerializer(serializers.ModelSerializer):
     seating_type = SeatingTypeSerializer(read_only=True)
+    seating_type_id = serializers.PrimaryKeyRelatedField(queryset=Table.objects.all(), required=True)
     class Meta:
         model = Table
-        fields = ['id', 'table_number', 'capacity', 'seating_type']
-
+        fields = ['id', 'table_number', 'capacity', 'seating_type', 'seating_type_id']
+    
 class BookingSerializer(serializers.ModelSerializer):
     """
     The main serializer for handling bookings.
@@ -109,29 +149,21 @@ class BookingSerializer(serializers.ModelSerializer):
         queryset=Occasion.objects.filter(is_active=True), 
         source='occasion', 
         write_only=True,
-        required=False, # Allows booking without an occasion
+        required=False,
         allow_null=True
     )
 
     seating_type_id = serializers.PrimaryKeyRelatedField(
         queryset=SeatingType.objects.filter(is_active=True), 
         write_only=True,
-        # We no longer need a source, as this field won't be saved directly.
     )
 
     class Meta:
         model = Booking
         fields = [
-            # Read/Write fields
             'id', 'number_of_guests', 'booking_datetime', 'special_request', 
-            
-            # Read-only nested objects (for GET)
             'user', 'occasion', 'table',
-            
-            # Write-only ID fields (for POST/PUT)
             'occasion_id', 'seating_type_id',
-            
-            # Read-only status fields
             'status', 'payment_status', 'staff_note', 'total_price', 'created_at', 'updated_at',
         ]
         read_only_fields = ['status', 'payment_status', 'staff_note', 'total_price']

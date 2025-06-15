@@ -1,21 +1,29 @@
 from rest_framework import permissions
 
-class IsOwnerOrAdminReadOnly(permissions.BasePermission):
+class IsSuperUser(permissions.BasePermission):
     """
-    Custom permission to only allow owners of an object to edit it,
-    while allowing admins to have read-only access.
+    Grants full access to Django superusers.
     """
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.is_superuser
 
     def has_object_permission(self, request, view, obj):
-        # Read permissions are allowed to any request,
-        # so we'll always allow GET, HEAD or OPTIONS requests.
-        if request.method in permissions.SAFE_METHODS:
-            return True # Anyone can view (queryset logic already filters)
-        
-        # Admin users can also view, but for safety, we restrict their write access
-        # in this view. They should use the Django Admin for critical changes.
-        if request.user and request.user.is_staff and request.method in permissions.SAFE_METHODS:
-            return True
+        return request.user and request.user.is_superuser
+    
+class IsManager(permissions.BasePermission):
+    """
+    Allows access to users in the 'Manager' group 
+    """
+    
+    def has_permission(self, request, view):
+        user = request.user
+        return user and user.is_authenticated and (
+            user.groups.filter(name="Manager").exists()
+        )
 
-        # Write permissions are only allowed to the owner of the booking.
-        return obj.user == request.user
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if user.groups.filter(name="Manager").exists():
+            return request.method in ['GET', 'PUT', 'PATCH', 'DELETE']
+        return False

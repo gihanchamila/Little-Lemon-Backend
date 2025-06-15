@@ -8,17 +8,20 @@ from .pricing import calculate_booking_price
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from .permissions import IsManager
 
-from .models import CustomUser, Occasion, SeatingType, Booking, TimeSlot
+from .models import CustomUser, Occasion, SeatingType, Booking, TimeSlot, Table, Payment
 from .serializers import (
     UserRegistrationSerializer,
     OccasionSerializer,
     SeatingTypeSerializer,
     BookingSerializer,
     TimeSlotSerializer,
-    PriceCalculationSerializer
+    PriceCalculationSerializer,
+    UserSerializer,
+    TableSerializer,
+    PaymentSerializer
 )
-from .permissions import IsOwnerOrAdminReadOnly
 
 # ===============================================================
 # Authentication Views
@@ -30,11 +33,16 @@ class UserRegistrationView(generics.CreateAPIView):
     """
     queryset = CustomUser.objects.all()
     serializer_class = UserRegistrationSerializer
-    permission_classes = [AllowAny] # Anyone can register
+    permission_classes = [AllowAny] 
 
 # ===============================================================
 # Admin Management ViewSets (Full C.R.U.D. for Admins)
 # ===============================================================
+
+class UserAdminViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAdminUser]
 
 class OccasionAdminViewSet(viewsets.ModelViewSet):
     """
@@ -42,7 +50,7 @@ class OccasionAdminViewSet(viewsets.ModelViewSet):
     """
     queryset = Occasion.objects.all()
     serializer_class = OccasionSerializer
-    permission_classes = [IsAdminUser] # ONLY admins can access this
+    permission_classes = [IsAdminUser | IsManager] 
 
 class SeatingTypeAdminViewSet(viewsets.ModelViewSet):
     """
@@ -50,7 +58,7 @@ class SeatingTypeAdminViewSet(viewsets.ModelViewSet):
     """
     queryset = SeatingType.objects.all()
     serializer_class = SeatingTypeSerializer
-    permission_classes = [IsAdminUser] # ONLY admins can access this
+    permission_classes = [IsAdminUser] 
 
 class TimeSlotAdminViewSet(viewsets.ModelViewSet):
     """
@@ -58,9 +66,30 @@ class TimeSlotAdminViewSet(viewsets.ModelViewSet):
     """
     queryset = TimeSlot.objects.all()
     serializer_class = TimeSlotSerializer
-    permission_classes = [IsAdminUser] # ONLY admins can access this
+    permission_classes = [IsAdminUser] 
 
+class BookingAdminViewSet(viewsets.ModelViewSet):
+     
+    """
+    Admin endpoint for full C.R.U.D. operations on Bookings.
+    """
+    queryset = Booking.objects.all()
+    serializer_class = BookingSerializer
+    permission_classes = [IsAdminUser | IsManager]
 
+class TableAdminviewSet(viewsets.ModelViewSet):
+    """
+    Admin endpoint for full C.R.U.D. operations on Tables.
+    """
+
+    queryset = Table.objects.all()
+    serializer_class = TableSerializer
+    permission_classes = [IsAdminUser | IsManager]
+
+class PaymentAdminViewSet(viewsets.ModelViewSet):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAdminUser | IsManager]
 # ===============================================================
 # Public Lookup Views (for frontend dropdowns, etc.)
 # ===============================================================
@@ -71,8 +100,7 @@ class OccasionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Occasion.objects.filter(is_active=True)
     serializer_class = OccasionSerializer
-    permission_classes = [AllowAny] # Publicly accessible info
-
+    permission_classes = [AllowAny] 
 
 class SeatingTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -80,8 +108,7 @@ class SeatingTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = SeatingType.objects.filter(is_active=True)
     serializer_class = SeatingTypeSerializer
-    permission_classes = [AllowAny] # Publicly accessible info
-
+    permission_classes = [AllowAny] 
 
 class TimeSlotViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -90,8 +117,12 @@ class TimeSlotViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = TimeSlot.objects.all().order_by('start_time')
     serializer_class = TimeSlotSerializer
-    permission_classes = [AllowAny] # Publicly accessible info
+    permission_classes = [AllowAny] 
 
+class TableViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Table.objects.all()
+    serializer_class = TableSerializer
+    permission_classes = [AllowAny]
 
 # ===============================================================
 # Core Application Views
@@ -104,9 +135,9 @@ class BookingViewSet(viewsets.ModelViewSet):
     - Staff members can see all bookings but cannot modify them via this API.
     """
     serializer_class = BookingSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrAdminReadOnly]
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_class = BookingFilter # e.g., /bookings/?status=confirmed
+    filterset_class = BookingFilter 
 
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def calculate_price(self, request):
@@ -165,4 +196,15 @@ class BookingViewSet(viewsets.ModelViewSet):
         # booking = self.get_object()
         # if booking.booking_datetime - timezone.now() < timedelta(hours=24):
         #     raise PermissionDenied("Cannot modify a booking less than 24 hours in advance.")
-        serializer.save()
+        serializer.save(user=self.request.user)
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'head', 'options']  # disallow PATCH/PUT/DELETE
+
+    def get_queryset(self):
+        return Payment.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
