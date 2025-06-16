@@ -12,6 +12,8 @@ python-decouple = "*"
 mysqlclient = "*"
 djangorestframework-filters = "*"
 django-filter = ">=23.1"
+django-cors-headers = "*"
+pytz = "*"
 
 [dev-packages]
 

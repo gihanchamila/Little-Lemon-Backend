@@ -2,6 +2,8 @@
 from datetime import timedelta
 from django.db.models import F, ExpressionWrapper, Q, DateTimeField
 from .models import Booking, Table
+import logging
+logger = logging.getLogger(__name__)
 
 # It's better practice to define constants at the top level or in settings.
 # In the future, this could come from the TimeSlot model or a global setting.
@@ -23,6 +25,10 @@ def find_available_table(booking_datetime, number_of_guests, seating_type_id, bo
     """
     requested_start_time = booking_datetime
     requested_end_time = requested_start_time + DEFAULT_BOOKING_DURATION
+
+    logger.debug(
+        f"Searching for table: guests={number_of_guests}, seating_type={seating_type_id}, time={booking_datetime}"
+    )
 
     # --- Step 1: Find all tables that are already booked during the requested time slot. ---
     
@@ -54,9 +60,14 @@ def find_available_table(booking_datetime, number_of_guests, seating_type_id, bo
     available_table = Table.objects.filter(
         seating_type_id=seating_type_id,
         capacity__gte=number_of_guests,
-        is_active=True # Good practice: only consider active tables
+        is_active=True 
     ).exclude(
         id__in=booked_table_ids
     ).order_by('capacity', 'table_number').first() # Optional: prioritize smaller tables first
+
+    if available_table:
+        logger.debug(f"Found available table: ID={available_table.id}, Capacity={available_table.capacity}")
+    else:
+        logger.debug("No available table found.")
     
     return available_table

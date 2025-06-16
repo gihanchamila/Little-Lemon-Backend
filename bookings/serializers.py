@@ -4,6 +4,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from .pricing import calculate_booking_price
 from .availability import find_available_table
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -182,7 +183,7 @@ class BookingSerializer(serializers.ModelSerializer):
         Check that the number of guests does not exceed the capacity of the seating type.
         """
         # On creation, 'seating_type' is in data because of the `source` argument
-        seating_type_id = data.get('seating_type_id').id
+        seating_type_id = data.get('seating_type_id')
         number_of_guests = data.get('number_of_guests')
 
         booking_datetime = data.get('booking_datetime')
@@ -214,6 +215,17 @@ class BookingSerializer(serializers.ModelSerializer):
         
         # The table object is already in validated_data from our validate() method.
         table = validated_data.get('table')
+        table = validated_data.get('table')
+        number_of_guests = validated_data.get('number_of_guests')
+
+        if table.capacity < number_of_guests:
+            raise serializers.ValidationError({
+                "non_field_errors": [
+                    f"A system error occurred: The selected table (capacity: {table.capacity}) "
+                    f"cannot accommodate the number of guests ({number_of_guests}). "
+                    "Please try your request again."
+                ]
+        })
         
         # Recalculate price based on the actual table's seating type
         price = calculate_booking_price(
@@ -247,3 +259,23 @@ class BookingSerializer(serializers.ModelSerializer):
             validated_data['total_price'] = price
             
         return super().update(instance, validated_data)
+    
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Add custom claims
+        token['email'] = user.email
+        token['username'] = user.username
+        return token
+
+    def validate(self, attrs):
+        # This method is called by the view to get the response data
+        data = super().validate(attrs)
+
+        # We can add the serialized user data to the response
+        # The 'self.user' object is available here after a successful login
+        user_data = UserSerializer(self.user).data
+        data['user'] = user_data
+
+        return data

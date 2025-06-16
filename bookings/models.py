@@ -78,7 +78,7 @@ class SeatingType(models.Model):
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return self.name
+        return f"Id : {self.id} | Name : {self.name} "
     
     class Meta:
         ordering = ['name']
@@ -117,7 +117,7 @@ class Booking(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookings')
     number_of_guests = models.PositiveIntegerField()
-    booking_datetime = models.DateTimeField()  # Instead of separate date/time
+    booking_datetime = models.DateTimeField()
     occasion = models.ForeignKey('Occasion', on_delete=models.SET_NULL, null=True)
     table = models.ForeignKey('Table', on_delete=models.PROTECT)
     special_request = models.TextField(blank=True, null=True)
@@ -131,7 +131,7 @@ class Booking(models.Model):
 
     def __str__(self):
         dt_format = self.booking_datetime.strftime('%Y-%m-%d @ %H:%M')
-        return f"Booking for {self.user.email} on {dt_format}"
+        return f"Booking for Id : {self.user.id} | Name : {self.user.first_name + self.user.last_name} | Email : {self.user.email} on {dt_format}"
     
     class Meta:
         ordering = ['-booking_datetime']

@@ -9,7 +9,7 @@ from django.db.utils import IntegrityError
 from bookings.models import BookingStatus, PaymentStatus, PaymentMethod
 
 # Import all your models
-from .models import (
+from ..models import (
     Occasion,
     SeatingType,
     Booking,
