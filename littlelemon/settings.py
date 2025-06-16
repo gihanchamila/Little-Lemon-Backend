@@ -31,7 +31,6 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -131,9 +130,9 @@ REST_FRAMEWORK = {
 }
 
 DJOSER = {
-    "USER_ID_FIELD": "id",
-    "LOGIN_FIELD": "email",
-    'SEND_ACTIVATION_EMAIL': True,
+    "USER_ID_FIELD": "id", #user identified by id
+    "LOGIN_FIELD": "email", #login field need email
+    'SEND_ACTIVATION_EMAIL': True, 
     'ACTIVATION_URL': 'auth/activate/{uid}/{token}/',
     'SERIALIZERS': {
         'token_obtain_pair': 'bookings.serializers.MyTokenObtainPairSerializer',
