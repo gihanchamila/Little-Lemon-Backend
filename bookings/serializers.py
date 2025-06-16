@@ -9,9 +9,23 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class UserSerializer(serializers.ModelSerializer):
     """
-    Serializer for displaying user information.
-    Read-only, used for nesting in other serializers.
+    Serializer for the CustomUser model, primarily for read-only purposes.
+    
+    This serializer is designed to output user information in a controlled way,
+    typically for nesting inside other serializers or for displaying user data.
+    
+    Fields:
+        - id: Unique identifier of the user.
+        - email: User's email address (used as username).
+        - first_name: User's first name.
+        - last_name: User's last name.
+        - mobile_number: User's mobile phone number (optional).
+    
+    Note:
+        All fields are read-only, meaning this serializer does not support
+        creating or updating user instances.
     """
+
     class Meta:
         model = CustomUser
         fields = ['id', 'email', 'first_name', 'last_name', 'mobile_number']
@@ -19,9 +33,27 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """
-    Serializer for creating new users.
-    Handles password validation and creation.
+    Serializer for registering new users.
+
+    Handles:
+    - Validation of required fields including email, names, mobile number, and password.
+    - Password input is write-only and styled for password fields.
+    - Creation of user instances using the custom user manager to ensure password hashing.
+
+    Fields:
+        - email (EmailField): User's email address, used as username.
+        - first_name (CharField): User's first name.
+        - last_name (CharField): User's last name.
+        - mobile_number (CharField): User's mobile number (required).
+        - password (CharField): Write-only password field.
+
+    Validation:
+        - Ensures mobile_number is provided, raising a ValidationError if missing.
+
+    Creation:
+        - Uses `CustomUser.objects.create_user` to handle user creation and password hashing.
     """
+
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
 
     class Meta:
@@ -29,7 +61,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         fields = ['email', 'first_name', 'last_name', 'mobile_number', 'password']
 
     def create(self, validated_data):
-        # Use the custom manager's create_user method to handle password hashing
+        """
+        Creates a new CustomUser instance with hashed password.
+
+        Args:
+            validated_data (dict): Validated data from the serializer.
+
+        Returns:
+            CustomUser: Newly created user instance.
+        """
         user = CustomUser.objects.create_user(
             email=validated_data['email'],
             first_name=validated_data['first_name'],
@@ -38,33 +78,80 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
-    
+
     def validate(self, data):
+        """
+        Validates that the mobile_number field is provided.
+
+        Args:
+            data (dict): Input data to validate.
+
+        Raises:
+            serializers.ValidationError: If mobile_number is missing.
+
+        Returns:
+            dict: Validated data.
+        """
         mobile_number = data.get('mobile_number')
 
         if not mobile_number:
             raise serializers.ValidationError({
                 'mobile_number': 'This field is required.'
             })
-        
+
         return data
     
 class OccasionSerializer(serializers.ModelSerializer):
-    """ Simple serializer for listing Occasions. """
+    """
+    Serializer for the Occasion model.
+
+    Used primarily for listing occasion instances with basic details.
+
+    Fields:
+        - id (Integer): Unique identifier of the occasion.
+        - name (CharField): Name/title of the occasion.
+        - description (TextField): Optional description providing more details about the occasion.
+    """
+
     class Meta:
         model = Occasion
         fields = ['id', 'name', 'description']
 
 class SeatingTypeSerializer(serializers.ModelSerializer):
-    """ Simple serializer for listing Seating Types. """
+    """
+    Serializer for the SeatingType model.
+
+    Used to list seating type details with validation for required fields.
+
+    Fields:
+        - id (Integer): Unique identifier of the seating type.
+        - name (CharField): Name of the seating type.
+        - capacity (Integer): Maximum number of guests the seating type can accommodate. Required.
+        - is_accessible (Boolean): Indicates if the seating type is accessible. Required.
+        - price_multiplier (Decimal): Multiplier applied to base prices for this seating type.
+        - location_note (CharField): Additional notes about the seating location.
+    """
+
     capacity = serializers.IntegerField(required=True)
     is_accessible = serializers.BooleanField(required=True)
+
     class Meta:
         model = SeatingType
         fields = ['id', 'name', 'capacity', 'is_accessible', 'price_multiplier', 'location_note']
 
 class TimeSlotSerializer(serializers.ModelSerializer):
-    """ Serializer for available time slots. """
+    """
+    Serializer for the TimeSlot model.
+
+    Used to represent available booking time slots including pricing information.
+
+    Fields:
+        - id (Integer): Unique identifier of the time slot.
+        - start_time (TimeField): Start time of the slot.
+        - end_time (TimeField): End time of the slot.
+        - label (CharField): Optional label or name for the time slot (e.g., "Lunch", "Dinner").
+        - base_price_per_guest (Decimal): Base price charged per guest during this time slot.
+    """
 
     class Meta:
         model = TimeSlot
@@ -72,8 +159,21 @@ class TimeSlotSerializer(serializers.ModelSerializer):
 
 class PriceCalculationSerializer(serializers.Serializer):
     """
-    Serializer to validate inputs for the price calculation endpoint.
+    Serializer for validating input data for the price calculation endpoint.
+
+    This serializer is not tied to a model but is used to ensure the required inputs
+    for calculating booking prices are valid and complete.
+
+    Fields:
+        - number_of_guests (IntegerField): The number of guests for the booking. Must be at least 1.
+        - booking_datetime (DateTimeField): The date and time of the booking.
+        - seating_type_id (PrimaryKeyRelatedField): ID of an active SeatingType. Must reference an active seating type.
+
+    Notes:
+        - seating_type_id is write-only as it is expected as input but not returned.
+        - The serializer performs validation such as ensuring the seating type is active.
     """
+
     number_of_guests = serializers.IntegerField(min_value=1)
     booking_datetime = serializers.DateTimeField()
     seating_type_id = serializers.PrimaryKeyRelatedField(
@@ -85,6 +185,25 @@ class PriceCalculationSerializer(serializers.Serializer):
         fields = ['number_of_guests', 'booking_datetime', 'seating_type_id']
 
 class PaymentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Payment model.
+
+    Handles creation and validation of payment records associated with bookings.
+
+    Meta:
+        - Uses all fields from Payment model.
+        - Read-only fields: 'user', 'verified', 'created_at', 'updated_at' to prevent client-side modification.
+
+    Validations:
+        - Ensures only one payment exists per booking.
+        - Validates that the booking belongs to the logged-in user.
+        - Prevents duplicate payments on the same booking.
+
+    Creation:
+        - Assigns the current logged-in user as the payment user.
+        - If the payment status is 'paid', updates the related booking's status to 'confirmed' and payment status to 'paid'.
+    """
+
     class Meta:
         model = Payment
         fields = '__all__'
@@ -94,7 +213,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         if Payment.objects.filter(booking=data['booking']).exists():
             raise serializers.ValidationError("This booking already has a payment.")
         return data
-    
+
     def validate_booking(self, booking):
         request = self.context['request']
         user = request.user
@@ -103,20 +222,20 @@ class PaymentSerializer(serializers.ModelSerializer):
         if booking.user != user:
             raise serializers.ValidationError("You can only make payments for your own bookings.")
 
-        # Optional: Prevent double payment
+        # Optional: Prevent duplicate payments
         if hasattr(booking, 'payment'):
             raise serializers.ValidationError("Payment has already been made for this booking.")
 
         return booking
-    
+
     def create(self, validated_data):
         user = self.context['request'].user
         validated_data['user'] = user
 
-        # Create the payment first
+        # Create the payment record
         payment = super().create(validated_data)
 
-        # Update the booking if payment status is "paid"
+        # Update booking status if payment is successful
         if payment.status == PaymentStatus.PAID:
             booking = payment.booking
             booking.status = BookingStatus.CONFIRMED
@@ -126,43 +245,92 @@ class PaymentSerializer(serializers.ModelSerializer):
         return payment
 
 class TableSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Table model.
+
+    Fields:
+        - id: Primary key of the table.
+        - table_number: Unique identifier string for the table (e.g., "V1", "P5").
+        - capacity: Number of guests the table can accommodate.
+        - seating_type: Nested read-only serializer showing details of the related SeatingType.
+        - seating_type_id: Writeable field to specify the SeatingType by its primary key when creating or updating a Table.
+
+    Notes:
+        - `seating_type` is read-only and used for displaying related SeatingType details.
+        - `seating_type_id` is required when creating or updating a Table, and expects a valid SeatingType instance.
+    """
+
     seating_type = SeatingTypeSerializer(read_only=True)
-    seating_type_id = serializers.PrimaryKeyRelatedField(queryset=Table.objects.all(), required=True)
+    seating_type_id = serializers.PrimaryKeyRelatedField(
+        queryset=SeatingType.objects.filter(is_active=True),  # corrected queryset for seating types, assuming intended
+        required=True
+    )
+
     class Meta:
         model = Table
         fields = ['id', 'table_number', 'capacity', 'seating_type', 'seating_type_id']
     
 class BookingSerializer(serializers.ModelSerializer):
     """
-    The main serializer for handling bookings.
-    Handles both creation (write) and retrieval (read) with different representations.
+    Serializer for managing Booking objects.
+
+    Features:
+    - Handles both reading (GET) and writing (POST/PUT) bookings with different representations.
+    - Uses nested serializers for user, occasion, and table details on read.
+    - Accepts related object IDs for occasion and seating type on write.
+    - Validates booking datetime is not in the past.
+    - Validates availability of tables based on seating type, guest count, and datetime.
+    - Calculates and sets the total price during creation and updates.
+    
+    Fields:
+        - id: Booking primary key.
+        - number_of_guests: Number of guests for the booking.
+        - booking_datetime: Date and time of the booking.
+        - special_request: Optional special requests.
+        - user: Nested user details (read-only).
+        - occasion: Nested occasion details (read-only).
+        - table: Nested table details (read-only).
+        - occasion_id: Occasion primary key for write operations (optional).
+        - seating_type_id: SeatingType primary key for write operations (required).
+        - status: Booking status (read-only).
+        - payment_status: Payment status (read-only).
+        - staff_note: Staff notes (read-only).
+        - total_price: Calculated total booking price (read-only).
+        - created_at, updated_at: Timestamps (read-only).
+    
+    Validation:
+        - Booking datetime must be in the future.
+        - Number of guests, booking datetime, and seating type must be provided.
+        - A suitable available table must exist for the booking parameters.
+    
+    Methods:
+        - validate_booking_datetime: Ensures booking datetime is not in the past.
+        - validate: Object-level validation to check table availability.
+        - create: Creates a booking after confirming table availability and calculates total price.
+        - update: Recalculates price if relevant fields change.
     """
-    # --- Read-only Nested Representations for GET requests ---
-    # To show detailed info instead of just IDs
+
     user = UserSerializer(read_only=True)
     occasion = OccasionSerializer(read_only=True)
     table = TableSerializer(read_only=True)
     total_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    
-    # --- Write-only fields for POST/PUT requests ---
-    # The frontend will send the ID of the related object
+
     occasion_id = serializers.PrimaryKeyRelatedField(
-        queryset=Occasion.objects.filter(is_active=True), 
-        source='occasion', 
+        queryset=Occasion.objects.filter(is_active=True),
+        source='occasion',
         write_only=True,
         required=False,
         allow_null=True
     )
-
     seating_type_id = serializers.PrimaryKeyRelatedField(
-        queryset=SeatingType.objects.filter(is_active=True), 
+        queryset=SeatingType.objects.filter(is_active=True),
         write_only=True,
     )
 
     class Meta:
         model = Booking
         fields = [
-            'id', 'number_of_guests', 'booking_datetime', 'special_request', 
+            'id', 'number_of_guests', 'booking_datetime', 'special_request',
             'user', 'occasion', 'table',
             'occasion_id', 'seating_type_id',
             'status', 'payment_status', 'staff_note', 'total_price', 'created_at', 'updated_at',
@@ -170,22 +338,13 @@ class BookingSerializer(serializers.ModelSerializer):
         read_only_fields = ['status', 'payment_status', 'staff_note', 'total_price']
 
     def validate_booking_datetime(self, value):
-        """
-        Check that the booking is not in the past.
-        """
         if value < timezone.now():
             raise serializers.ValidationError("Booking date and time cannot be in the past.")
         return value
 
     def validate(self, data):
-        """
-        Object-level validation.
-        Check that the number of guests does not exceed the capacity of the seating type.
-        """
-        # On creation, 'seating_type' is in data because of the `source` argument
         seating_type_id = data.get('seating_type_id')
         number_of_guests = data.get('number_of_guests')
-
         booking_datetime = data.get('booking_datetime')
 
         if not (seating_type_id and number_of_guests and booking_datetime):
@@ -202,19 +361,12 @@ class BookingSerializer(serializers.ModelSerializer):
                 "Sorry, no tables are available for the selected time, number of guests, and seating preference."
             )
 
-        # If we found a table, attach it to the validated data to use in the create() method.
         data['table'] = available_table
         return data
-    
+
     def create(self, validated_data):
-        """
-        Create the booking using the available table found during validation.
-        """
-        # We no longer need 'seating_type_id' for creation, so we pop it.
-        validated_data.pop('seating_type_id')
-        
-        # The table object is already in validated_data from our validate() method.
-        table = validated_data.get('table')
+        validated_data.pop('seating_type_id')  # No longer needed after validation
+
         table = validated_data.get('table')
         number_of_guests = validated_data.get('number_of_guests')
 
@@ -222,45 +374,56 @@ class BookingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 "non_field_errors": [
                     f"A system error occurred: The selected table (capacity: {table.capacity}) "
-                    f"cannot accommodate the number of guests ({number_of_guests}). "
-                    "Please try your request again."
+                    f"cannot accommodate the number of guests ({number_of_guests}). Please try again."
                 ]
-        })
-        
-        # Recalculate price based on the actual table's seating type
+            })
+
         price = calculate_booking_price(
-            number_of_guests=validated_data['number_of_guests'],
+            number_of_guests=number_of_guests,
             booking_datetime=validated_data['booking_datetime'],
-            seating_type=table.seating_type # Use seating_type from the found table
+            seating_type=table.seating_type
         )
         validated_data['total_price'] = price
-        
+
         booking = Booking.objects.create(**validated_data)
         return booking
 
     def update(self, instance, validated_data):
-        """
-        Recalculate the price if relevant fields are changed.
-        """
-        # If any of the price-affecting fields are in the update data, recalculate
         recalculate = any(key in validated_data for key in ['number_of_guests', 'booking_datetime', 'seating_type'])
 
         if recalculate:
-            # Use existing instance data as default and override with new data
             number_of_guests = validated_data.get('number_of_guests', instance.number_of_guests)
             booking_datetime = validated_data.get('booking_datetime', instance.booking_datetime)
             seating_type = validated_data.get('seating_type', instance.seating_type)
-            
+
             price = calculate_booking_price(
                 number_of_guests=number_of_guests,
                 booking_datetime=booking_datetime,
                 seating_type=seating_type
             )
             validated_data['total_price'] = price
-            
+
         return super().update(instance, validated_data)
-    
+
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Custom serializer extending Simple JWT's TokenObtainPairSerializer.
+
+    Purpose:
+    - Customize JWT token payload by adding extra user claims (email, username).
+    - Include serialized user information in the token response payload upon login.
+
+    Methods:
+    - get_token(cls, user):
+        Overrides the default method to add custom claims to the token payload.
+        Adds 'email' and 'username' from the user model to the JWT.
+
+    - validate(self, attrs):
+        Called during login to validate credentials.
+        Calls super() to get the default token response (access and refresh tokens).
+        Adds the serialized user data (via UserSerializer) to the response under 'user' key.
+    """
+    
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -270,12 +433,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        # This method is called by the view to get the response data
         data = super().validate(attrs)
-
-        # We can add the serialized user data to the response
-        # The 'self.user' object is available here after a successful login
         user_data = UserSerializer(self.user).data
         data['user'] = user_data
-
         return data
