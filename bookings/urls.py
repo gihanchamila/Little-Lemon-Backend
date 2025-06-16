@@ -13,7 +13,7 @@ from .views import (
     SeatingTypeAdminViewSet,
     TimeSlotAdminViewSet,
     BookingAdminViewSet,
-    TableAdminviewSet,
+    TableAdminViewSet,
     PaymentAdminViewSet
 )
 
@@ -39,7 +39,7 @@ admin_router.register(r'occasions', OccasionAdminViewSet, basename='admin-occasi
 admin_router.register(r'seating-types', SeatingTypeAdminViewSet, basename='admin-seatingtypes')
 admin_router.register(r'time-slots', TimeSlotAdminViewSet, basename='admin-timeslot')
 admin_router.register(r'bookings', BookingAdminViewSet, basename='admin-booking')
-admin_router.register(r'tables', TableAdminviewSet, basename='admin-tables')
+admin_router.register(r'tables', TableAdminViewSet, basename='admin-tables')
 admin_router.register(r'payments', PaymentAdminViewSet, basename='admin-payments')
 
 # The API URLs are now determined automatically by the router.
