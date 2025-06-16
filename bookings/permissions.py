@@ -2,7 +2,11 @@ from rest_framework import permissions
 
 class IsSuperUser(permissions.BasePermission):
     """
-    Grants full access to Django superusers.
+    Permission class that grants full access only to Django superusers.
+
+    Permissions granted:
+    - Any request from an authenticated superuser is allowed.
+    - Object-level permission is granted exclusively to superusers.
     """
 
     def has_permission(self, request, view):
@@ -13,7 +17,16 @@ class IsSuperUser(permissions.BasePermission):
     
 class IsManager(permissions.BasePermission):
     """
-    Allows access to users in the 'Manager' group 
+    Custom permission to allow access only to users who belong to the 'Manager' group.
+
+    Permissions granted:
+    - For any request, user must be authenticated and a member of the 'Manager' group.
+    - Object-level permissions allow 'GET', 'PUT', 'PATCH', and 'DELETE' methods only for Managers.
+    
+    Methods:
+    - has_permission: Checks if the requesting user is authenticated and is in the 'Manager' group.
+    - has_object_permission: Further restricts object-level actions to only Managers,
+                             allowing only safe and modifying HTTP methods.
     """
     
     def has_permission(self, request, view):
