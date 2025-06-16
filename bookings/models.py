@@ -52,7 +52,7 @@ class CustomUserManager(BaseUserManager):
         email = self.normalize_email(email)
 
         if not extra_fields.get('is_superuser', False):
-            extra_fields.setdefault('is_email_verified', False)
+            extra_fields.setdefault('is_email_verified', True)
             extra_fields['is_active'] = extra_fields['is_email_verified']
 
         user = self.model(email=email, **extra_fields)
