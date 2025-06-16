@@ -23,116 +23,208 @@ from .serializers import (
     PaymentSerializer
 )
 
-# ===============================================================
-# Authentication Views
-# ===============================================================
-
 class UserRegistrationView(generics.CreateAPIView):
     """
-    Public endpoint for new user registration.
+    API endpoint for user registration.
+
+    Allows anyone (unauthenticated users) to create a new user account.
+    Uses the UserRegistrationSerializer to validate and create users.
     """
     queryset = CustomUser.objects.all()
     serializer_class = UserRegistrationSerializer
-    permission_classes = [AllowAny] 
-
-# ===============================================================
-# Admin Management ViewSets (Full C.R.U.D. for Admins)
-# ===============================================================
+    permission_classes = [AllowAny]
 
 class UserAdminViewSet(viewsets.ModelViewSet):
+    """
+    Admin-only viewset for managing users.
+
+    Provides full CRUD operations on CustomUser instances.
+    Access is restricted to users with admin privileges (is_staff=True).
+    """
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
 
 class OccasionAdminViewSet(viewsets.ModelViewSet):
     """
-    Admin endpoint for full C.R.U.D. operations on Occasions.
+    Admin and Manager endpoint for full CRUD operations on Occasion instances.
+    
+    Permissions:
+        - Accessible by admin users (`is_staff=True`)
+        - Accessible by users in the 'Manager' group
+    
+    Provides:
+        - List all occasions
+        - Retrieve a single occasion
+        - Create new occasions
+        - Update existing occasions
+        - Delete occasions
     """
     queryset = Occasion.objects.all()
     serializer_class = OccasionSerializer
-    permission_classes = [IsAdminUser | IsManager] 
+    permission_classes = [IsAdminUser | IsManager]
 
 class SeatingTypeAdminViewSet(viewsets.ModelViewSet):
     """
-    Admin endpoint for full C.R.U.D. operations on Seating Types.
+    Admin-only endpoint for full CRUD operations on SeatingType instances.
+    
+    Permissions:
+        - Only accessible by admin users (is_staff=True)
+    
+    Features:
+        - List all seating types
+        - Retrieve a single seating type
+        - Create new seating types
+        - Update existing seating types
+        - Delete seating types
     """
     queryset = SeatingType.objects.all()
     serializer_class = SeatingTypeSerializer
-    permission_classes = [IsAdminUser] 
+    permission_classes = [IsAdminUser]
 
 class TimeSlotAdminViewSet(viewsets.ModelViewSet):
     """
-    Admin endpoint for full C.R.U.D. operations on Time Slots.
+    Admin-only endpoint for full CRUD operations on TimeSlot instances.
+    
+    Permissions:
+        - Only accessible by admin users (is_staff=True)
+    
+    Features:
+        - List all time slots
+        - Retrieve a single time slot
+        - Create new time slots
+        - Update existing time slots
+        - Delete time slots
     """
     queryset = TimeSlot.objects.all()
     serializer_class = TimeSlotSerializer
-    permission_classes = [IsAdminUser] 
+    permission_classes = [IsAdminUser]
 
 class BookingAdminViewSet(viewsets.ModelViewSet):
-     
     """
-    Admin endpoint for full C.R.U.D. operations on Bookings.
+    Admin and Manager endpoint for full CRUD operations on Booking instances.
+    
+    Permissions:
+        - Accessible by admin users (is_staff=True)
+        - Accessible by users in the 'Manager' group
+    
+    Features:
+        - List all bookings
+        - Retrieve a single booking
+        - Create new bookings
+        - Update existing bookings
+        - Delete bookings
     """
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
     permission_classes = [IsAdminUser | IsManager]
 
-class TableAdminviewSet(viewsets.ModelViewSet):
+class TableAdminViewSet(viewsets.ModelViewSet):
     """
-    Admin endpoint for full C.R.U.D. operations on Tables.
-    """
+    Admin and Manager endpoint for full CRUD operations on Table instances.
 
+    Permissions:
+        - Accessible by admin users (is_staff=True)
+        - Accessible by users in the 'Manager' group
+    
+    Features:
+        - List all tables
+        - Retrieve a single table
+        - Create new tables
+        - Update existing tables
+        - Delete tables
+    """
     queryset = Table.objects.all()
     serializer_class = TableSerializer
     permission_classes = [IsAdminUser | IsManager]
 
 class PaymentAdminViewSet(viewsets.ModelViewSet):
+    """
+    Admin and Manager endpoint for full CRUD operations on Payment records.
+
+    Permissions:
+        - Accessible by admin users (is_staff=True)
+        - Accessible by users in the 'Manager' group
+    
+    Features:
+        - List all payments
+        - Retrieve a single payment
+        - Create new payments
+        - Update existing payments
+        - Delete payments
+    """
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
     permission_classes = [IsAdminUser | IsManager]
-# ===============================================================
-# Public Lookup Views (for frontend dropdowns, etc.)
-# ===============================================================
 
 class OccasionViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Provides a read-only list of available occasions.
+    Public endpoint to list and retrieve active occasions.
+    Read-only: no creation, update, or delete allowed.
+
+    Permissions:
+        - Allow any user (authenticated or not) to view the list/details.
+
+    Queryset:
+        - Only occasions marked as active (`is_active=True`) are included.
     """
     queryset = Occasion.objects.filter(is_active=True)
     serializer_class = OccasionSerializer
-    permission_classes = [AllowAny] 
+    permission_classes = [AllowAny]
 
 class SeatingTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Provides a read-only list of available seating types.
+    Public endpoint to list and retrieve active seating types.
+    Read-only: no create, update, or delete allowed.
+
+    Permissions:
+        - Accessible by any user (authenticated or anonymous).
+
+    Queryset:
+        - Only seating types marked as active (`is_active=True`) are included.
     """
     queryset = SeatingType.objects.filter(is_active=True)
     serializer_class = SeatingTypeSerializer
-    permission_classes = [AllowAny] 
+    permission_classes = [AllowAny]
 
 class TimeSlotViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Provides a read-only list of available time slots.
-    This could be expanded to show only available slots for a given day.
+    Public endpoint to list available time slots.
+    Currently returns all time slots ordered by start time.
+    
+    Can be extended to filter slots by date or availability.
+    
+    Permissions:
+        - Accessible by any user (authenticated or anonymous).
     """
     queryset = TimeSlot.objects.all().order_by('start_time')
     serializer_class = TimeSlotSerializer
-    permission_classes = [AllowAny] 
+    permission_classes = [AllowAny]
+
+    # Optional example: filter by date query param to show slots on a specific date
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        date = self.request.query_params.get('date')
+        if date:
+            # Assuming you have a date field on TimeSlot or related model to filter by
+            # Adjust this filtering logic based on your model's date fields
+            queryset = queryset.filter(start_time__date=date)
+        return queryset
 
 class TableViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public endpoint to list all tables.
+    Read-only access for all users.
+    """
     queryset = Table.objects.all()
     serializer_class = TableSerializer
     permission_classes = [AllowAny]
 
-# ===============================================================
-# Core Application Views
-# ===============================================================
-
 class BookingViewSet(viewsets.ModelViewSet):
     """
-    A ViewSet for viewing, creating, and editing bookings.
-    - Users can only see and manage their own bookings.
-    - Staff members can see all bookings but cannot modify them via this API.
+    ViewSet for managing bookings.
+    - Users can see and manage their own bookings.
+    - Staff can see all bookings but should not modify via this API.
     """
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated]
@@ -142,58 +234,37 @@ class BookingViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def calculate_price(self, request):
         """
-        An endpoint to preview the booking price without creating a booking.
+        Preview booking price without creating a booking.
         """
         serializer = PriceCalculationSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
             try:
                 seating_type = SeatingType.objects.get(id=data['seating_type_id'].id)
-                
                 price = calculate_booking_price(
                     number_of_guests=data['number_of_guests'],
                     booking_datetime=data['booking_datetime'],
                     seating_type=seating_type
                 )
                 return Response({'total_price': price}, status=status.HTTP_200_OK)
+            except SeatingType.DoesNotExist:
+                return Response({'error': 'Invalid seating type.'}, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def get_queryset(self):
-        """
-        This view should return a list of all the bookings
-        for the currently authenticated user.
-        Staff users can see all bookings.
-
-        PERFORMANCE NOTE: We use `select_related` to perform a single,
-        efficient JOIN query to fetch related objects, preventing the N+1 problem.
-        """
         user = self.request.user
         if user.is_staff:
-            # Staff can see all bookings, ordered for clarity
-            return Booking.objects.all().select_related('user', 'occasion', 'table__seating_type')
-        
-        # Normal users see only their own bookings
-        return Booking.objects.filter(user=user).select_related('user', 'occasion', 'table__seating_type')
+            return Booking.objects.all().select_related('user', 'occasion', 'table__seating_type').order_by('-booking_datetime')
+        return Booking.objects.filter(user=user).select_related('user', 'occasion', 'table__seating_type').order_by('-booking_datetime')
 
     def perform_create(self, serializer):
-        """
-        SECURITY NOTE: Automatically assign the logged-in user to the booking.
-        This prevents a user from creating a booking for someone else.
-        The `user` field is made read-only in the serializer, but this is a
-        stronger, backend-enforced guarantee.
-        """
         serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
-        """
-        Can be used to add logic before an update, e.g., preventing edits
-        to bookings that are too close to their start time.
-        """
-        # Example: Prevent changes within 24 hours of the booking
-        # booking = self.get_object()
+        booking = self.get_object()
+        # Example restriction (optional)
         # if booking.booking_datetime - timezone.now() < timedelta(hours=24):
         #     raise PermissionDenied("Cannot modify a booking less than 24 hours in advance.")
         serializer.save(user=self.request.user)
@@ -201,10 +272,12 @@ class BookingViewSet(viewsets.ModelViewSet):
 class PaymentViewSet(viewsets.ModelViewSet):
     serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'post', 'head', 'options']  # disallow PATCH/PUT/DELETE
+    http_method_names = ['get', 'post', 'head', 'options']  # disables PATCH, PUT, DELETE
 
     def get_queryset(self):
+        # Users can only see their own payments
         return Payment.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        # Automatically assign the logged-in user to the payment
         serializer.save(user=self.request.user)
