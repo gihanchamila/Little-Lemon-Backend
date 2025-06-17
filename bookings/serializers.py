@@ -5,6 +5,7 @@ from django.utils import timezone
 from .pricing import calculate_booking_price
 from .availability import find_available_table
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import ValidationError
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -314,6 +315,7 @@ class BookingSerializer(serializers.ModelSerializer):
     occasion = OccasionSerializer(read_only=True)
     table = TableSerializer(read_only=True)
     total_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    base_price_per_guest = serializers.DecimalField(read_only=True, max_digits=10, decimal_places=2)
 
     occasion_id = serializers.PrimaryKeyRelatedField(
         queryset=Occasion.objects.filter(is_active=True),
@@ -333,7 +335,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'id', 'number_of_guests', 'booking_datetime', 'special_request',
             'user', 'occasion', 'table',
             'occasion_id', 'seating_type_id',
-            'status', 'payment_status', 'staff_note', 'total_price', 'created_at', 'updated_at',
+            'status', 'payment_status', 'staff_note', 'total_price', 'base_price_per_guest', 'created_at', 'updated_at',
         ]
         read_only_fields = ['status', 'payment_status', 'staff_note', 'total_price']
 
@@ -363,13 +365,27 @@ class BookingSerializer(serializers.ModelSerializer):
 
         data['table'] = available_table
         return data
+    
+    def get_base_price(self, booking_datetime):
+        from bookings.models import TimeSlot
+        booking_time = booking_datetime.time()
+        try:
+            timeslot = TimeSlot.objects.get(start_time__lte=booking_time, end_time__gte=booking_time)
+        except TimeSlot.DoesNotExist:
+            raise ValidationError({"booking_datetime": "No valid time slot found for the selected time."})
+        except TimeSlot.MultipleObjectsReturned:
+            raise ValidationError({"error": "Overlapping time slots configured. Contact support."})
+        return timeslot.base_price_per_guest
 
     def create(self, validated_data):
         validated_data.pop('seating_type_id')  # No longer needed after validation
 
-        table = validated_data.get('table')
-        number_of_guests = validated_data.get('number_of_guests')
+        table = validated_data['table']
+        seating_type = table.seating_type
+        number_of_guests = validated_data['number_of_guests']
+        booking_datetime = validated_data['booking_datetime']
 
+        base_price_per_guest = self.get_base_price(booking_datetime)
         if table.capacity < number_of_guests:
             raise serializers.ValidationError({
                 "non_field_errors": [
@@ -378,12 +394,14 @@ class BookingSerializer(serializers.ModelSerializer):
                 ]
             })
 
-        price = calculate_booking_price(
+        total_price = calculate_booking_price(
             number_of_guests=number_of_guests,
             booking_datetime=validated_data['booking_datetime'],
             seating_type=table.seating_type
         )
-        validated_data['total_price'] = price
+
+        validated_data['base_price_per_guest'] = base_price_per_guest
+        validated_data['total_price'] = total_price
 
         booking = Booking.objects.create(**validated_data)
         return booking
@@ -395,12 +413,16 @@ class BookingSerializer(serializers.ModelSerializer):
             number_of_guests = validated_data.get('number_of_guests', instance.number_of_guests)
             booking_datetime = validated_data.get('booking_datetime', instance.booking_datetime)
             seating_type = validated_data.get('seating_type', instance.seating_type)
+            number_of_guests = validated_data.get('number_of_guests', instance.number_of_guests)
+
+            base_price_per_guest = self.get_base_price(booking_datetime)
 
             price = calculate_booking_price(
                 number_of_guests=number_of_guests,
                 booking_datetime=booking_datetime,
                 seating_type=seating_type
             )
+            validated_data['base_price_per_guest'] = base_price_per_guest
             validated_data['total_price'] = price
 
         return super().update(instance, validated_data)

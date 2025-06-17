@@ -14,8 +14,11 @@ from .views import (
     TimeSlotAdminViewSet,
     BookingAdminViewSet,
     TableAdminViewSet,
-    PaymentAdminViewSet
+    PaymentAdminViewSet,
+    check_availability
 )
+
+from .availability import find_available_table
 
 # DefaultRouter automatically handles the URL routing for ViewSets.
 # It creates the standard list, create, retrieve, update, destroy routes.
@@ -48,4 +51,5 @@ admin_router.register(r'payments', PaymentAdminViewSet, basename='admin-payments
 urlpatterns = [
     path('', include(router.urls)),
     path('admin/', include(admin_router.urls)),
+    path("check-availability/", check_availability, name="find_available_table"),
 ]

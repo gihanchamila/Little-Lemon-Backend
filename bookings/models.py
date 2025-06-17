@@ -224,7 +224,7 @@ class Table(models.Model):
         Returns:
             str: A human-readable identifier showing the table number, type, and capacity.
         """
-        return f"Table {self.table_number} ({self.seating_type.name} - seats {self.capacity})"
+        return f"Table id : {self.id} | Table {self.table_number} ({self.seating_type.name} - seats {self.capacity})"
 
     class Meta:
         ordering = ['table_number']

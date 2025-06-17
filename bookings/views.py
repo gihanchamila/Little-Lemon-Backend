@@ -9,6 +9,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from .permissions import IsManager
+from .availability import find_available_table
+from rest_framework.decorators import api_view
+from django.utils.dateparse import parse_datetime
 
 from .models import CustomUser, Occasion, SeatingType, Booking, TimeSlot, Table, Payment
 from .serializers import (
@@ -281,3 +284,40 @@ class PaymentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Automatically assign the logged-in user to the payment
         serializer.save(user=self.request.user)
+
+
+@api_view(["POST"])
+def check_availability(request):
+    try:
+        seating_type_id = request.data.get('seating_type_id')
+        number_of_guests = request.data.get('number_of_guests')
+        booking_datetime = request.data.get('booking_datetime')
+
+        if not booking_datetime or not number_of_guests or not seating_type_id:
+            return Response({"detail": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+
+        booking_datetime = parse_datetime(booking_datetime)
+
+        if booking_datetime is None:
+            return Response({"detail": "Invalid date format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        available_table = find_available_table(
+            booking_datetime=booking_datetime,
+            number_of_guests=number_of_guests,
+            seating_type_id=seating_type_id,
+        )
+
+        if available_table:
+            return Response({
+                "available": True,
+                "table_id": available_table.id,
+                "capacity": available_table.capacity,
+            })
+        else:
+            return Response({
+                "available": False,
+                "detail": "No available table for the selected time and criteria."
+            })
+
+    except Exception as e:
+        return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
