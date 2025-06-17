@@ -12,6 +12,10 @@ from .permissions import IsManager
 from .availability import find_available_table
 from rest_framework.decorators import api_view
 from django.utils.dateparse import parse_datetime
+from rest_framework.exceptions import ValidationError
+from datetime import datetime
+
+
 
 from .models import CustomUser, Occasion, SeatingType, Booking, TimeSlot, Table, Payment
 from .serializers import (
@@ -321,3 +325,23 @@ def check_availability(request):
 
     except Exception as e:
         return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['POST'])
+def get_total_price(request):
+    try:
+        number_of_guests = int(request.data.get('number_of_guests'))
+        booking_datetime = request.data.get('booking_datetime')
+        seating_type_id = request.data.get('seating_type_id')
+
+        if not (number_of_guests and booking_datetime and seating_type_id):
+            raise ValidationError("Missing required fields.")
+
+        booking_dt = datetime.fromisoformat(booking_datetime)
+        seating_type = SeatingType.objects.get(pk=seating_type_id)
+
+        total = calculate_booking_price(number_of_guests, booking_dt, seating_type)
+        return Response({"total_price": total})
+    except SeatingType.DoesNotExist:
+        raise ValidationError("Invalid seating type.")
+    except Exception as e:
+        raise ValidationError(str(e))

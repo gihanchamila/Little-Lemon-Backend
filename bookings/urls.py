@@ -15,7 +15,8 @@ from .views import (
     BookingAdminViewSet,
     TableAdminViewSet,
     PaymentAdminViewSet,
-    check_availability
+    check_availability,
+    get_total_price
 )
 
 from .availability import find_available_table
@@ -52,4 +53,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('admin/', include(admin_router.urls)),
     path("check-availability/", check_availability, name="find_available_table"),
+    path('get-price/', get_total_price, name='get_total_price'),
 ]
