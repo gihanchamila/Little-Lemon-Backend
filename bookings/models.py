@@ -316,7 +316,7 @@ class Payment(models.Model):
     method = models.CharField(max_length=50, choices=PaymentMethod.choices)
     status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
     transaction_id = models.CharField(max_length=100, null=True, blank=True)
-    currency = models.CharField(max_length=10, default='LKR')
+    currency = models.CharField(max_length=10, default='USD')
     paid_at = models.DateTimeField(null=True, blank=True)
     verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
